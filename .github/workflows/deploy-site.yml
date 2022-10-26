@@ -79,7 +79,7 @@ jobs:
         run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy with rsync
-        run: rsync -avz -e 'ssh assets.zip ${{ secrets.SSH_USER }}@production:/home/${{ secrets.SSH_USER }}/assets.zip
+        run: rsync -avz assets.zip ${{ secrets.SSH_USER }}@production:/home/${{ secrets.SSH_USER }}/laravel/assets.zip
 
       - name: Run deployer script
         run: ssh production 'php deploy.php'
