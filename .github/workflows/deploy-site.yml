@@ -66,20 +66,20 @@ jobs:
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          name: id_rsa
+          name: id_rsa-prod
           known_hosts: "just-a-placeholder-so-we-dont-get-errors"
           config: |
             Host production
               Hostname ${{ secrets.SSH_HOST }}
               Port: ${{ secrets.SSH_PORT }}
               User ${{ secrets.SSH_USER }}
-              IdentityFile ~/.ssh/id_rsa
+              IdentityFile ~/.ssh/id_rsa-prod
 
       - name: Adding Known Hosts
         run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy with rsync
-        run: rsync -avz -e 'ssh -p ${{ secrets.SSH_PORT}}' assets.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/assets.zip
+        run: rsync -avz -e 'ssh assets.zip ${{ secrets.SSH_USER }}@production:/home/${{ secrets.SSH_USER }}/assets.zip
 
       - name: Run deployer script
         run: ssh production 'php deploy.php'
