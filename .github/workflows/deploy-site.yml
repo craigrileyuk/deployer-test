@@ -71,7 +71,7 @@ jobs:
           config: |
             Host production
               Hostname ${{ secrets.SSH_HOST }}
-              Port: ${{ secrets.SSH_PORT }}
+              Port ${{ secrets.SSH_PORT }}
               User ${{ secrets.SSH_USER }}
               IdentityFile ~/.ssh/id_rsa-prod
 
