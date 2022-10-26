@@ -75,6 +75,9 @@ jobs:
               User ${{ secrets.SSH_USER }}
               IdentityFile ~/.ssh/id_rsa-prod
 
+      - name: Test Echo
+        run: cat ~/.ssh/config
+
       - name: Adding Known Hosts
         run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
