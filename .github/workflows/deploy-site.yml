@@ -1,0 +1,78 @@
+name: deploy-documentation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          WITH_V: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: none
+          RELEASE_BRANCHES: main
+
+    outputs:
+      bump: ${{ steps.tag.outputs.part }}
+      new_tag: ${{ steps.tag.outputs.new_tag }}
+
+  build:
+    runs-on: ubuntu-latest
+    needs: tag
+    if: needs.tag.outputs.bump
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          WITH_V: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: none
+          RELEASE_BRANCHES: main
+
+      - name: Create npmrc file
+        run: echo "${{ secrets.NPMRC_PRODUCTION }}" > .npmrc
+
+      - name: Install Node
+        if: steps.tag.outputs.part
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: steps.tag.outputs.part
+        run: npm install
+
+      - name: Build assets
+        if: steps.tag.outputs.part
+        run: npm run prod:all
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [tag, build]
+    if: needs.tag.outputs.bump
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Deploy with rsync
+        if: steps.tag.outputs.part
+        run: rsync -avz -e 'ssh -p ${{ secrets.SSH_PORT}}' storybook-static/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.ABSOLUTE_DEPLOY_PATH }}

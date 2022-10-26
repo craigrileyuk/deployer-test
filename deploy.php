@@ -3,17 +3,16 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Filesystem\Filesystem;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Process\ExecutableFinder;
-use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Process\PhpExecutableFinder;
 
 class AUIDeploy
 {
     protected string $php;
     protected string $composer;
+    protected Filesystem $filesystem;
 
     public function __construct()
     {
@@ -25,7 +24,10 @@ class AUIDeploy
         $this->git = $executableFinder->find('git');
 
         $this->root = __DIR__;
+        $this->filesystem = new Filesystem;
 
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+        $this->env = $dotenv->safeLoad();
 
         if (empty($this->php)) {
             throw new \Exception("Unable to find PHP binary");
@@ -38,31 +40,12 @@ class AUIDeploy
 
     public function pull()
     {
-        $process = new Process([$this->git, "pull"]);
-        $process->setTimeout(300);
-        $process->setWorkingDirectory($this->root);
-        $process->run();
-
-        if ($process->isSuccessful()) {
-            return $process->getOutput();
-        } else {
-            echo "ERROR: " . $process->getErrorOutput();
-            die();
-        }
+        $this->runCommand([$this->git, "pull"]);
     }
 
     public function composerUpdate()
     {
-        $process = new Process([$this->php, $this->composer, "update", "--no-interaction"]);
-        $process->setTimeout(300);
-        $process->setWorkingDirectory($this->root);
-        $process->run();
-
-        if ($process->isSuccessful()) {
-            return $process->getOutput();
-        } else {
-            throw new \Exception("Composer error:" . $process->getErrorOutput());
-        }
+        $this->runCommand([$this->php, $this->composer, "update", "--no-interaction"]);
     }
 
     public function extractAssets()
@@ -77,16 +60,66 @@ class AUIDeploy
 
         $archive = new ZipArchive;
         if ($archive->open($zipPath) === true) {
-            /* $archive->extractTo($extractPath);
-            $archive->close(); */
+            $this->filesystem->deleteDirectory($extractPath);
+            $archive->extractTo($extractPath);
+            $archive->close();
         } else {
             throw new \Exception("Unable to extract assets package");
         }
     }
 
+    public function installAssets()
+    {
+        $source = $this->root . "/compiled-assets";
+        $target = $this->env['BUILD_DIR'] ?? 'public/build';
+        $target = $this->root . "/" . $target;
+
+        $this->filesystem->moveDirectory($source, $target, true);
+    }
+
     public function runMigrations()
     {
-        Artisan::call('migrate');
+        $this->runCommand([$this->php, 'artisan', "migrate"]);
+    }
+
+    public function clearCache()
+    {
+        $this->runCommand([$this->php, 'artisan', "optimize:clear"]);
+    }
+
+    public function optimise()
+    {
+        $this->runCommand([$this->php, 'artisan', "optimize"]);
+    }
+
+    public function link()
+    {
+        $this->runCommand([$this->php, 'artisan', "storage:link", '--force']);
+    }
+
+    private function runCommand($input)
+    {
+        $process = new Process($input);
+        $process->setTimeout(300);
+        $process->setWorkingDirectory($this->root);
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            echo $process->getOutput();
+        } else {
+            $output = !empty($process->getErrorOutput()) ? $process->getErrorOutput() : $process->getOutput();
+            echo $output;
+            die();
+        }
+    }
+
+    public function down()
+    {
+        $this->runCommand([$this->php, 'artisan', 'down']);
+    }
+    public function up()
+    {
+        $this->runCommand([$this->php, 'artisan', 'up']);
     }
 }
 
@@ -95,4 +128,10 @@ $deploy = new AUIDeploy();
 $deploy->pull();
 $deploy->composerUpdate();
 $deploy->extractAssets();
+$deploy->down();
+$deploy->installAssets();
 $deploy->runMigrations();
+$deploy->clearCache();
+$deploy->optimise();
+$deploy->link();
+$deploy->up();
