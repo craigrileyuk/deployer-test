@@ -85,4 +85,4 @@ jobs:
         run: rsync -avz assets.zip ${{ secrets.SSH_USER }}@production:/home/${{ secrets.SSH_USER }}/laravel/assets.zip
 
       - name: Run deployer script
-        run: ssh production 'php deploy.php'
+        run: ssh production 'php laravel/deploy.php'
