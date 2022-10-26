@@ -79,7 +79,7 @@ class AUIDeploy
 
     public function runMigrations()
     {
-        $this->runCommand([$this->php, 'artisan', "migrate"]);
+        $this->runCommand([$this->php, 'artisan', "migrate", "--force"]);
     }
 
     public function clearCache()
