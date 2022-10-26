@@ -86,5 +86,6 @@ jobs:
         run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy with rsync
-        run: rsync -avz -e 'ssh -p ${{ secrets.SSH_PORT}}' assets.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/assets.zip
-        run: ssh production 'php deploy.php'
+        run: |
+          rsync -avz -e 'ssh -p ${{ secrets.SSH_PORT}}' assets.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/assets.zip
+          ssh production 'php deploy.php'
