@@ -75,6 +75,8 @@ class AUIDeploy
         $target = $this->root . "/" . $target;
 
         $this->filesystem->moveDirectory($source, $target, true);
+        $this->filesystem->deleteDirectory($this->root . "/compiled-assets");
+        $this->filesystem->delete($this->root . "/assets.zip");
     }
 
     public function runMigrations()

@@ -1,4 +1,4 @@
-name: deploy-documentation
+name: deploy-site
 
 on:
   push:
@@ -67,12 +67,24 @@ jobs:
     needs: [tag, build]
     if: needs.tag.outputs.bump
     steps:
+      - name: Create ZIP for release
+        run: zip -r assets.zip ./public/build -x "*.DS_Store*" -x ".npmrc" -x "/*.mix.js" -x "node_modules/*" -x ".github/*" -x ".git/*" -x ".gitignore" -x "adminBuild/* -x tests/*"
+
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          name: id_rsa
+          known_hosts: "just-a-placeholder-so-we-dont-get-errors"
+          config: |
+            Host production
+              Hostname ${{ secrets.SSH_HOST }}
+              User ${{ secrets.SSH_USER }}
+              IdentityFile ~/.ssh/id_rsa
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy with rsync
-        if: steps.tag.outputs.part
-        run: rsync -avz -e 'ssh -p ${{ secrets.SSH_PORT}}' storybook-static/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.ABSOLUTE_DEPLOY_PATH }}
+        run: rsync -avz -e 'ssh -p ${{ secrets.SSH_PORT}}' assets.zip ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/assets.zip
+        run: ssh production 'php deploy.php'
