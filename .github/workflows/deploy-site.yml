@@ -60,7 +60,7 @@ jobs:
         run: npm run prod:all
 
       - name: Create ZIP for release
-        run: zip -r assets.zip ./public/build -x "*.DS_Store*" -x ".npmrc" -x "/*.mix.js" -x "node_modules/*" -x ".github/*" -x ".git/*" -x ".gitignore" -x "adminBuild/* -x tests/*"
+        run: cd public/build && zip ../../assets.zip -r .
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
