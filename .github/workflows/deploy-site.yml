@@ -48,18 +48,15 @@ jobs:
         run: echo "${{ secrets.NPMRC_PRODUCTION }}" > .npmrc
 
       - name: Install Node
-        if: steps.tag.outputs.part
         uses: actions/setup-node@v2
         with:
           node-version: "16"
           cache: "npm"
 
       - name: Install dependencies
-        if: steps.tag.outputs.part
         run: npm install
 
       - name: Build assets
-        if: steps.tag.outputs.part
         run: npm run prod:all
 
   deploy:
